@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+	<head>
+    <!-- Importing jQuery and jQuery UI -->
+    	<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js'></script>			        
+        <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
+        
+        <script type='text/javascript'>
+			/*function Animator(index,rand_arr){
+				//$("div.puzzle_piece").eq(rand_arr[index]).css({'position':'static'});
+				$("div.puzzle_piece").eq(rand_arr[index]).animate({left:600},function(){
+					if(index==15){}
+					else{
+						Animator(index+1,rand_arr);}										
+					});																
+				}
+				*/
+			function range(grid_size){
+				var prop_arr = [];
+				for(var i=0;i<grid_size;i++){
+						prop_arr.push(i);
+					}
+				return prop_arr;
+				}
+				
+			$(document).ready(function(){
+				/*********This part of code concerns with the top subsecction (header,menubar etc)*********/
+				//Introducing menu bar wrappers
+				$('div.menu_top').wrap("<div class='menu_top_wrapper'></div>");
+			
+				//Some elementary CSS on already present DOM elements and recently introdued DOM elements. Involves CSS on menubar wrappers
+				for(var i=0;i<4;i++){
+				$('div.menu_top').eq(i).css({
+						'background-image':'url(' + '\'images/image'+(i+1)+'.gif\''+')',			
+					});
+				$('div.menu_top_wrapper').eq(i).css({
+						'margin-left':(80)*(i+1)+152*(i)
+					});
+				}
+				
+					
+				//Appending new divisons to previously introduced Novice, Beginner, Proficient and Expert menubar wrappers. Depends on the images available for each category.Data obtained from a JSON file.
+				var array_outer = [];
+				$.getJSON("images.json",function(result){
+						array_outer = [result.novice,result.beginner,result.proficient,result.expert];
+						for(var i=0;i<4;i++){
+							for(var j=0;j<array_outer[i];j++){
+								$('.menu_top_wrapper').eq(i).append("<div class=\'level"+i+"\'></div>");
+								}
+							}
+						
+					
+					});
+			//The animations on the menubar wrappers based on the above classes
+				var menu_obj = $('.menu_top_wrapper');
+				$.each(menu_obj,function(index,value){
+					$(this).mouseover(function(){
+						$(this).stop();
+						$(this).animate({
+							height:(array_outer[index]+1)*36+2
+							},300);
+						});
+					
+					});
+				$('.menu_top_wrapper').mouseout(function(){
+					$(this).stop();
+					$(this).animate({
+							height:35
+						},300);
+					});
+				//Correcting some CSS
+				$('.level0,.level1,.level2,.level3').last().css({
+					'border-bottom':'0px solid grey'
+					});
+				//Linking
+				
+				//$('.menu_top_wrapper').eq(0).append("<div class='novice'></div>");
+				//$('.menu_top_wrapper').eq(1).append("<div class='beginner'></div>");
+				//$('.menu_top_wrapper').eq(2).append("<div class='proficient'></div>");
+				//$('.menu_top_wrapper').eq(3).append("<div class='expert'></div>");
+				
+				//Declaring some variables
+				var grid_dimension = 3;
+				var grid_size = grid_dimension*grid_dimension;
+				var img_size = 400;//Currently valid only for square sized images.
+				var box_size =grid_dimension>4?Math.floor(img_size/grid_dimension)-3*(grid_dimension-5):Math.floor(img_size/grid_dimension);
+			
+				//Appending the outer squares to the Wrapper, introducing them into the DOM
+				var $outer_sq = "<div class='outer_sq'></div>";
+				for(var i=0;i<grid_size;i++){
+					$("#wrapper").append($outer_sq);
+				}
+				
+				
+				//Inserting div elements inside each of the outer_sq divs with help of for
+				var $puzzle_piece = "<div class='puzzle_piece'></div>";
+				for(var i=0;i<grid_size;i++){
+					$('div.outer_sq').eq(i).append($puzzle_piece);
+				}
+				
+				//Random Array sequence generator. Needed for jumbling up the puzzle to begin with.
+				var prop_arr =range(grid_size);
+				var rand_arr =[];
+				for(var i=0;i<grid_size;i++){
+					var rand_num = Math.floor(Math.random()*(prop_arr.length));//betn 0 n 15					
+					var newly = prop_arr[rand_num];
+					prop_arr.splice(rand_num,1);
+					rand_arr.push(newly);
+					}
+							
+				//Assigning backgroundpositions, in a random manner with help of random sequence above.
+				for(var i=0;i<grid_size;i++){
+					//Note the negative values.
+					var backgroundX = -1*(i%grid_dimension)*box_size;
+					var backgroundY = -1*(Math.floor(i/grid_dimension))*box_size;
+					$('div.puzzle_piece').eq(rand_arr[i]).css({
+						'background-position':backgroundX+"px "+backgroundY+"px",
+						});
+					}
+/*Grid two code begins. This will be the solved grid. A space where the puzzle pieces can be dropped.*/
+
+				//Introducing the second grid, where the solved pieces can be placed
+				//Appendgin squares
+				var $outer_sq_solved = "<div class='outer_sq_solved'></div>";
+				for(var i=0;i<grid_size;i++){
+					$("#solved").append($outer_sq_solved);
+				}
+				
+					//Adjusting the CSS (height and width of the classes according to the above dimensions). This can only be done after introduction of elements into the DOM.
+				var padding_solved = 10;
+				var extra_width_solved = (grid_dimension-4)*10;
+				$('div.puzzle_piece').add('div.outer_sq').css({
+					height:box_size,
+					width:box_size});
+				$('div.outer_sq_solved').css({
+					height:box_size+padding_solved,
+					width:box_size+padding_solved
+					});
+				
+				
+				
+				 
+				var $object = $("div.puzzle_piece");
+				//Code to make sure that no element is lost in the picking up process. INcrements the zindex of each element by 10 when picked up, so that it comes to the front.Stacking kind of process.
+				var z_index = 200;
+				$object.mousedown(function(){
+					var bool_val = $(this).hasClass('droppeddown');
+					if(bool_val==false){
+						z_index=z_index+10;
+						$(this).css({
+								'z-index':z_index
+							});
+						}
+					});
+					
+				//Code for dragging.Scope for draggable assigned according to the values stored in the rand_arr.
+				$.each($object,function(index,value){
+					//Indices of values 0,1,2,3 are produced by searching here.
+					//Post that those indices are assigned as a scope.
+						$(this).draggable({scope:"elem"+rand_arr.indexOf(index)});
+					});
+					
+				//Code for droppable. This makes the other grid squares droppable Note the scope matching here.	
+				var $object2 = $("div.outer_sq_solved");
+				var completion_flag = 0;
+				
+				$.each($object2,function(index,value){
+					
+					$(this).droppable({tolerance:"fit",scope:"elem"+index,drop:function(){
+							
+							completion_flag=completion_flag+1;//Indicates puzzle completion	
+							
+							var $this_piece = $object.eq(rand_arr[index]);//This is the elment/puzzle_piece which was dropped. 
+							$this_piece.draggable({disabled:true});
+							$this_piece.css({
+									'z-index':'-9999'
+								});//Note that use .css and not addClass cuz this adds inline css which has more priority over the addClass property
+							$(this).addClass("highlighter");//No css overrides addClass css properties since relevant css not changed on event occurence in the document.
+							if(completion_flag==grid_size){
+								$("div.outer_sq").addClass("invisible");
+								$("#line").css({border:'0px'});
+								
+								//Hiding the background frame for solved jigsaw and moving #wrapper to the left.
+								var explode_time = 500*(grid_dimension-4);
+								$object2.hide("explode",explode_time,function(){
+									$("#wrapper").animate({
+									'margin-left':'-470px'
+									},600,
+									
+									//Animations to rearrange solved puzzle in a good way
+									function(){
+										$('#info').fadeIn();
+									});//Call Back function to rearrange puzzle ENDS here
+									
+								});//Hiding through explode and moving wrapper ends here.
+											
+							}//If block with completion_flag(puzzle_completion) condition ends here		
+							
+						}//drop:Function ends here
+						
+					});//.droppable({}) Ends here
+					
+				});//The $.each ENDS here.
+			
+		});//The ready scope ends here
+		</script>
+        <style type='text/css'>
+			body{
+				background-color:#F7F7F7;
+				margin:0 0 0 0;}
+			
+		/*CSS elements have been assigned their values according to the hierarchy*/
+			div.header,div.footer{
+				border:inherit;
+				height:120px;
+				background-image:url('images/header.gif');}
+				img#logo{
+					margin-left:20px;
+					margin-top:40px;}
+			div.strip{
+				height:35px;
+				background-image:url('images/strip.gif');}
+				div.menu_wrapper{
+					overflow:visible;
+					border:0px solid grey;
+					width:1024px;
+					margin:auto;
+					height:32px;}
+					div.menu_top_wrapper{
+						background-color:#111;
+						border-radius:0px 0px 15px 15px;
+						position:absolute;
+						z-index:990;
+						display:inline;
+						float:left;
+						height:35px;
+						width:175px;
+						border:0px solid grey;
+						overflow:hidden;
+						}
+						div.menu_top{
+							background-position:center;
+							border:inherit;
+							width:inherit;
+							height:35px;
+							cursor:pointer;
+							}
+						.level0,.level1,.level2,.level3{
+							border-top:1px solid black;
+							border-bottom:1px solid #333; 
+							background-image:url('images/level0_1.gif');
+							height:35px;
+							margin:0px;
+							}
+						.level0:hover,.level1:hover,.level2:hover,.level3:hover{
+							background-image:url('images/level0_1_back.gif');
+							cursor:pointer;}
+			div.strip#below{
+				
+				height:100px;}		
+			
+			div.footer{
+				
+				height:400px}
+				
+		/*The crux in the middle part begins here. */
+		div.puzzle_wrap{
+				
+				width:1030px;
+				margin:0px;
+				border:0px solid grey;
+				height:525px;
+				padding:0px;
+				margin:50px auto;
+				}
+			
+			div.pamplet{
+				position:relative;
+				width:inherit;
+				height:inherit;
+				border:inherit;
+				
+				}
+				#wrapper,#solved,#info{
+					margin:15px;
+					border:inherit;
+					padding:2px;
+				/*Note that the height and width here is based on puzzle piece dimensions and will change*/
+				/*Box width + Margin + Borders*/
+					height:450px;
+					width:450px;
+				/*************************************/
+					display:inline;
+					float:left;
+					border-radius:10px;
+				}
+				#wrapper{
+					margin-left:25px;}
+					
+				#line{
+					border-left:4px dashed grey;
+					width:0px;
+					height:400px;
+					display:inline;
+					float:left;
+					margin-top:50px;}
+				#solved{
+				/*Height and width depend on grid dimensions and will change*/
+					height:484px;
+					width:484px;
+				/*************************************/
+					float:left;
+					margin-left:20px}
+				#info{
+					display:none;
+					margin-left:20px;
+					}
+					div.well_done{
+						font-family:Helvetica, sans-serif;
+						color:#333;
+						font-size:18px;}
+						
+						span.fonter{
+							display:block;
+							margin-left:100px;
+							font-weight:bold;
+							font-size:40px;
+							border:0px solid black;}
+						span.inliner{
+							display:inline;
+							margin:0px;}
+					div.next_level{
+						height:50px;
+						width:150px;
+						border:1px solid grey;
+						border-radius:15px;
+						margin:auto;
+						}
+				div.outer_sq,div.outer_sq_solved{
+					
+				/*Height and width depend upon the size of the grid and will change*/
+					height:100px;
+					width:100px;
+			    /*******************************/	
+					border:inherit;
+					display:inline;
+					float:left;
+					margin:2px;
+					border-radius:10px;
+					}
+				div.outer_sq{
+					margin:5px;}
+				div.outer_sq_solved{
+				
+				/*Height and width depend upon the size of the grid and will change*/
+					height:110px;
+					width:110px;
+				/*******************************/	
+					text-align:center;
+					position:relative;
+					z-index:-999999;
+					border:1px solid grey;}
+			
+				div.puzzle_piece{
+					-moz-box-shadow:1px 1px 4px 1px;
+					-webkit-box-shadow:1px 1px 4px 1px;
+  					box-shadow:1px 1px 4px 1px;
+					
+				/*Height and width depend upon the size of the grid and will change*/
+					height:100px;
+					width:100px;
+				/*******************************/	
+					margin:auto;
+					border:inherit;
+					padding:0px;
+					background-image:url('images/newone.jpg');
+					position:relative;
+					border-radius:10px;
+					}
+/*CSS classes that become active when some activity happens. addClass ke arguments. */
+				div.outer_sq_solved.highlighter{
+					background-color:lawngreen;
+					background-image:url('');}
+				div.invisible{
+					border:0px solid white;}
+				div.puzzle_img{
+					display:inline;
+					float:left;}	
+				div.puzzle_piece.droppeddown{
+					z-index:-9999;}	
+				div.puzzle_piece.pickedup{
+					position:relative;
+					z-index:100;}	
+			
+		</style>
+    </head>
+    <body>
+    		<div class='header'>
+            	<img id='logo' src='images/jumbler.gif'/>
+            </div>
+            <div class='strip' id='above'>
+            	<div class='menu_wrapper'>
+            		<div class='menu_top'>
+                	</div>
+                	<div class='menu_top'>
+                	</div>
+                	<div class='menu_top'>
+                	</div>
+                	<div class='menu_top'>
+                	</div>
+                </div>
+            </div>
+    		<div class='puzzle_wrap'>
+				<div class='pamplet'>       			
+               		<div id='wrapper'>
+        			</div>
+            		<div id='line'>
+            		</div>
+        			<div id='solved'>
+        			</div>
+                    <div id='info'>
+                    	<div class='well_done'>
+                         <span class='fonter'>Congratulations!</span><br/>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp You solved the puzzle in <span class='fonter inliner'>12 </span> seconds! Your score has been recorded based on howe neatly you  solved the puzzle and how many times you saw the hint, along with the time you took!. So try solving faster and neater without looking up the hint next time!
+                        </div>
+                        <br/>
+                        <br/>
+                        <div class='next_level'>
+                        </div>
+                    </div>
+            	</div>
+            </div>
+           <div class='strip' id='below'>
+            </div>
+       		
+            
+        	<!--<div class='img'>
+        		<img src='images/puzzle_img.png' style='width:100px;height:100px;'/>
+        	</div>--> 
+        
+        <span>
+        </span>
+    </body>
+</html>

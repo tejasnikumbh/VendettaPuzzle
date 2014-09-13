@@ -1,4 +1,4 @@
-Vendetta-Puzzle
+Vendetta Puzzle
 ===============
 
 Can you complete the Jigsaw Puzzle (A bit incomplete this one is, but you can solve the jigsaw puzzle)
